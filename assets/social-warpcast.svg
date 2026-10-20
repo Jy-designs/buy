@@ -1,0 +1,10 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="warpcast" clip-path="url(#clip0_0_258)">
+<path id="Subtract" d="M18.292 0C21.4444 5.43738e-05 23.9999 2.55559 24 5.70801V18.249C23.9998 21.4013 21.4443 23.957 18.292 23.957H5.70801C2.55568 23.957 0.000202874 21.4013 0 18.249V5.70801C5.07812e-05 2.55558 2.55558 5.43737e-05 5.70801 0H18.292ZM8.02148 17.4053H10.7031L12 12.8652L13.2754 17.4053H15.9785L18.8545 7.5459H15.7402L14.5518 12.0166L13.3623 7.5459H10.6162L9.44824 12.0166L8.25977 7.5459H5.12402L8.02148 17.4053Z" fill="#FFFEF8" stroke-width="0.0432432" stroke="#111A29"/>
+</g>
+<defs>
+<clipPath id="clip0_0_258">
+<rect width="24" height="24" fill="white"/>
+</clipPath>
+</defs>
+</svg>

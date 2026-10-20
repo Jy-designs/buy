@@ -1,0 +1,13 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="percentage-circle" clip-path="url(#clip0_0_16)">
+<path id="Vector" d="M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke="#111A29"/>
+<path id="Vector_2" d="M16 15.5C16 15.7761 15.7761 16 15.5 16C15.2239 16 15 15.7761 15 15.5C15 15.2239 15.2239 15 15.5 15C15.7761 15 16 15.2239 16 15.5Z" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke="#111A29"/>
+<path id="Vector_3" d="M9 8.5C9 8.77614 8.77614 9 8.5 9C8.22386 9 8 8.77614 8 8.5C8 8.22386 8.22386 8 8.5 8C8.77614 8 9 8.22386 9 8.5Z" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke="#111A29"/>
+<path id="Vector_4" d="M16 8L8 16" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke="#111A29"/>
+</g>
+<defs>
+<clipPath id="clip0_0_16">
+<rect width="24" height="24" fill="white"/>
+</clipPath>
+</defs>
+</svg>
