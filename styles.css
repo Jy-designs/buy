@@ -576,4 +576,11 @@ html, body { overflow-x: clip; }
 .calc--card .field { min-width: 0; }
 .calc--card .input-box { background: transparent; }
 .calc--card .receive-box { gap: 12px; padding: 16px; background: rgba(255, 254, 248, .6); }
-.calc--card .select__panel { min-width: max(100%, 300px); z-index: 30; }
+/* B: the dropdown opens inside the card, full content width, filling down to the card's bottom */
+.calc.calc--card { position: relative; }
+.calc--card .select { position: static; }
+.calc--card .select__panel {
+  z-index: 30; top: 88px; left: 0; right: 0; bottom: 0; width: auto; min-width: 0;
+  display: flex; flex-direction: column;
+}
+.calc--card .select__list { flex: 1; min-height: 0; max-height: none; }
