@@ -206,19 +206,40 @@
   function stepInvest(delta) {
     state.invest = Math.max(0, Math.min(MAX_INVEST, Math.round((state.invest + delta) * 100) / 100));
     els.invest.value = state.invest.toLocaleString('en-GB', { maximumFractionDigits: 2 });
-    els.investBox.classList.remove('is-bump'); void els.investBox.offsetWidth; els.investBox.classList.add('is-bump');
     renderAll();
   }
-  $('#investPlus').addEventListener('click', () => stepInvest(10));
-  minusBtn.addEventListener('click', () => stepInvest(-10));
+  // press and hold to repeat: starts after 400ms, speeds up, and switches to €50 steps after ~2s
+  function holdToRepeat(btn, dir) {
+    let timer = 0, started = 0;
+    const stop = () => { clearTimeout(timer); timer = 0; els.investBox.classList.remove('is-active'); };
+    const tick = () => {
+      const held = performance.now() - started;
+      stepInvest(dir * (held > 2000 ? 50 : 10));
+      if ((dir < 0 && state.invest <= 0) || (dir > 0 && state.invest >= MAX_INVEST)) return stop();
+      timer = setTimeout(tick, Math.max(40, 140 - held / 15));   // 140ms → 40ms as you keep holding
+    };
+    btn.addEventListener('pointerdown', e => {
+      if (e.button !== 0 || btn.disabled) return;
+      e.preventDefault();
+      try { btn.setPointerCapture(e.pointerId); } catch (_) { /* keep working without capture */ }
+      started = performance.now();
+      els.investBox.classList.add('is-active');   // primary (#111A29) outline while pressing
+      stepInvest(dir * 10);
+      timer = setTimeout(tick, 400);
+    });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => btn.addEventListener(t, stop));
+    // keyboard (Enter/Space) still steps once per press
+    btn.addEventListener('click', e => { if (e.detail === 0) stepInvest(dir * 10); });
+  }
+  holdToRepeat($('#investPlus'), 1);
+  holdToRepeat(minusBtn, -1);
   els.invest.addEventListener('keydown', e => {
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault();
       const step = e.shiftKey ? 100 : 10;
       state.invest = Math.max(0, Math.min(MAX_INVEST, Math.round((state.invest + (e.key === 'ArrowUp' ? step : -step)) * 100) / 100));
       els.invest.value = String(state.invest);
-      els.investBox.classList.remove('is-bump'); void els.investBox.offsetWidth; els.investBox.classList.add('is-bump');
-      renderAll();
+        renderAll();
     }
     if (e.key === 'Enter') els.invest.blur();
   });
@@ -393,13 +414,16 @@
   const HERO_VIDEO = {
     a: { src: 'assets/hero-wave.mp4', loop: true, poster: 'assets/hero.png' },
     b: { src: 'assets/hero-surfer.mp4', loop: false, poster: '' },
+    c: { src: 'assets/hero-surfer.mp4', loop: false, poster: '' },
   };
+  const VARIANTS = ['a', 'b', 'c'];
   let variant = null;
   function setVariant(v) {
     if (v === variant) return;
     variant = v;
-    const isB = v === 'b';
+    const isB = v !== 'a';   // B and C both put the calculator in the hero card
     document.body.classList.toggle('variant-b', isB);
+    document.body.classList.toggle('variant-c', v === 'c');
     tabsEl.dataset.active = v;
     tabBtns.forEach(b => { const on = b.dataset.variant === v; b.classList.toggle('is-active', on); b.setAttribute('aria-selected', on); });
 
@@ -417,7 +441,7 @@
     heroVideo.play().catch(() => {});
 
     const url = new URL(location.href);
-    if (isB) url.searchParams.set('variant', 'b'); else url.searchParams.delete('variant');
+    if (isB) url.searchParams.set('variant', v); else url.searchParams.delete('variant');
     history.replaceState(null, '', url);
     renderSlider();
     onScroll();
@@ -425,11 +449,13 @@
   tabBtns.forEach(b => b.addEventListener('click', () => setVariant(b.dataset.variant)));
   tabsEl.addEventListener('keydown', e => {
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-    const next = variant === 'a' ? 'b' : 'a';
+    const i = VARIANTS.indexOf(variant) + (e.key === 'ArrowRight' ? 1 : -1);
+    const next = VARIANTS[(i + VARIANTS.length) % VARIANTS.length];
     setVariant(next);
     tabBtns.find(b => b.dataset.variant === next).focus();
   });
-  setVariant(new URLSearchParams(location.search).get('variant') === 'b' ? 'b' : 'a');
+  const requested = new URLSearchParams(location.search).get('variant');
+  setVariant(VARIANTS.includes(requested) ? requested : 'a');
 
   // ---------------------------------------------------------------- boot
   renderAll();
