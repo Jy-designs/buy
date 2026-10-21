@@ -10,7 +10,13 @@
 <body>
 <div class="page">
 
-  <!-- ============ NAV ============ -->
+  <!-- ============ VARIANT TABS + NAV ============ -->
+  <div class="topbar" id="topbar">
+  <div class="tabs" role="tablist" aria-label="Design variant">
+    <span class="tabs__pill" aria-hidden="true"></span>
+    <button class="tabs__item is-active" role="tab" type="button" aria-selected="true" data-variant="a">A</button>
+    <button class="tabs__item" role="tab" type="button" aria-selected="false" data-variant="b">B</button>
+  </div>
   <header class="nav" id="nav">
     <a href="#" class="nav__logo" aria-label="Venga home"><img src="assets/logo.svg" width="130" height="24" alt="Venga" /></a>
     <nav class="nav__menu" aria-label="Main">
@@ -34,18 +40,25 @@
       <a class="nav__cta" href="#download">DOWNLOAD</a>
     </nav>
   </header>
+  </div>
 
   <!-- ============ HERO ============ -->
   <section class="hero">
     <div class="hero__bg">
-      <video src="assets/hero-wave.mp4" poster="assets/hero.png" autoplay muted loop playsinline preload="auto" aria-hidden="true"></video>
+      <video id="heroVideo" src="assets/hero-wave.mp4" poster="assets/hero.png" autoplay muted loop playsinline preload="auto" aria-hidden="true"></video>
     </div>
-    <h1 class="hero__title trim">
-      <span class="line"><span>Buy crypto and</span></span>
-      <span class="line"><span>ride the wave</span></span>
-    </h1>
-    <p class="hero__sub trim fade-up" style="--d:.5s">Buy crypto in your Venga account with a single transfer from your bank.</p>
-    <a href="#download" class="btn btn--orange hero__btn fade-up" style="--d:.65s"><span>Get the App</span><i class="btn__icon"><img src="assets/arrow-right.svg" alt="" /><img src="assets/arrow-right.svg" alt="" /></i></a>
+    <div class="hero__content">
+      <div class="hero__text">
+        <h1 class="hero__title trim">
+          <span class="line"><span>Buy crypto and</span></span>
+          <span class="line"><span>ride the wave</span></span>
+        </h1>
+        <p class="hero__sub trim fade-up" style="--d:.5s">Buy crypto in your Venga account with a single transfer from your bank.</p>
+      </div>
+      <a href="#download" class="btn btn--orange hero__btn fade-up" style="--d:.65s"><span>Get the App</span><i class="btn__icon"><img src="assets/arrow-right.svg" alt="" /><img src="assets/arrow-right.svg" alt="" /></i></a>
+    </div>
+    <!-- B: the calculator is moved in here -->
+    <div class="hero__card" id="heroCard"></div>
   </section>
 
   <!-- ============ CALCULATOR ============ -->
@@ -55,6 +68,7 @@
       <p class="subtitle trim calc-section__sub">Set your ideal investment then drag to see how price moves change its value in euros.</p>
     </div>
 
+    <div id="calcHome"></div>
     <div class="calc reveal" id="calc">
       <!-- left -->
       <div class="calc__left">

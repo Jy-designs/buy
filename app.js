@@ -339,7 +339,7 @@
   });
 
   // ---------------------------------------------------------------- scroll effects
-  const nav = $('#nav');
+  const topbar = $('#topbar');
   const banner = $('.banner__bg img');
   const bannerEl = $('.banner');
   // Stacking step cards: each card sticks under the nav; as the next one slides over it,
@@ -360,7 +360,7 @@
 
   let ticking = false;
   function onScroll() {
-    nav.classList.toggle('is-scrolled', window.scrollY > 40);
+    topbar.classList.toggle('is-scrolled', window.scrollY > 40);
     if (!reduceMotion) stack();
     // gentle parallax on the CTA banner photo
     const r = bannerEl.getBoundingClientRect();
@@ -377,6 +377,52 @@
     entries.forEach(en => { if (en.isIntersecting) { en.target.classList.add('is-in'); io.unobserve(en.target); } });
   }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
   $$('.reveal, .step').forEach(el => io.observe(el));
+
+  // ---------------------------------------------------------------- A / B variant tabs
+  // A = calculator in its own section, looping wave video.
+  // B = calculator inside a glass card in the hero, surfer video that plays once and stops on the last frame.
+  const tabsEl = $('.tabs'), tabBtns = $$('.tabs__item');
+  const calcEl = $('#calc'), calcHome = $('#calcHome'), heroCard = $('#heroCard'), heroVideo = $('#heroVideo');
+  const HERO_VIDEO = {
+    a: { src: 'assets/hero-wave.mp4', loop: true, poster: 'assets/hero.png' },
+    b: { src: 'assets/hero-surfer.mp4', loop: false, poster: '' },
+  };
+  let variant = null;
+  function setVariant(v) {
+    if (v === variant) return;
+    variant = v;
+    const isB = v === 'b';
+    document.body.classList.toggle('variant-b', isB);
+    tabsEl.dataset.active = v;
+    tabBtns.forEach(b => { const on = b.dataset.variant === v; b.classList.toggle('is-active', on); b.setAttribute('aria-selected', on); });
+
+    // move the one live calculator between the section and the hero card (state is kept)
+    if (isB) heroCard.appendChild(calcEl);
+    else calcHome.after(calcEl);
+    calcEl.classList.toggle('calc--card', isB);
+    if (isB) calcEl.classList.add('is-in');
+
+    const vid = HERO_VIDEO[v];
+    heroVideo.loop = vid.loop;
+    if (vid.poster) heroVideo.poster = vid.poster; else heroVideo.removeAttribute('poster');
+    if (!heroVideo.src.endsWith(vid.src)) { heroVideo.src = vid.src; }
+    heroVideo.currentTime = 0;
+    heroVideo.play().catch(() => {});
+
+    const url = new URL(location.href);
+    if (isB) url.searchParams.set('variant', 'b'); else url.searchParams.delete('variant');
+    history.replaceState(null, '', url);
+    renderSlider();
+    onScroll();
+  }
+  tabBtns.forEach(b => b.addEventListener('click', () => setVariant(b.dataset.variant)));
+  tabsEl.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const next = variant === 'a' ? 'b' : 'a';
+    setVariant(next);
+    tabBtns.find(b => b.dataset.variant === next).focus();
+  });
+  setVariant(new URLSearchParams(location.search).get('variant') === 'b' ? 'b' : 'a');
 
   // ---------------------------------------------------------------- boot
   renderAll();
