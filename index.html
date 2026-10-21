@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=1440" />
   <title>Buy Crypto · Venga</title>
   <meta name="description" content="Buy crypto in your Venga account with a single transfer from your bank." />
-  <link rel="stylesheet" href="styles.css?v=202610211122" />
+  <link rel="stylesheet" href="styles.css?v=202610211133" />
 </head>
 <body>
 <div class="page">
@@ -73,6 +73,7 @@
     <div id="calcHome"></div>
     <div class="calc reveal" id="calc">
       <!-- left -->
+      <p class="calc__title trim">Euro to crypto convertor</p>
       <div class="calc__left">
         <div class="calc__fields">
           <div class="field">
@@ -109,8 +110,11 @@
         <div class="calc__receive">
           <span class="label trim">You receive</span>
           <div class="receive-box">
-            <p class="receive-box__amt trim" id="receiveAmt"><span class="skeleton">0.000000 BTC</span></p>
-            <p class="receive-box__note trim">Estimated amount. Actual transaction rates may differ.</p>
+            <img class="receive-box__coin" id="receiveCoin" src="assets/coin-btc.png" width="67" height="67" alt="" />
+            <div class="receive-box__text">
+              <p class="receive-box__amt trim" id="receiveAmt"><span class="skeleton">0.000000 BTC</span></p>
+              <p class="receive-box__note trim"><span class="note--a">Estimated amount. Actual transaction rates may differ.</span><span class="note--b">Estimated amount. Transaction rates may differ.</span></p>
+            </div>
           </div>
         </div>
 
@@ -455,6 +459,6 @@
   </section>
 
 </div>
-<script src="app.js?v=202610211122"></script>
+<script src="app.js?v=202610211133"></script>
 </body>
 </html>

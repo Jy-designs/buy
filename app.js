@@ -284,6 +284,7 @@
     $('#selIcon').src = iconFor(c);
     $('#selName').textContent = c.name;
     els.coinImg.src = c.coin;
+    $('#receiveCoin').src = c.coin;
     els.coinWrap.classList.remove('is-flip'); void els.coinWrap.offsetWidth; els.coinWrap.classList.add('is-flip');
     renderRates();
   }
