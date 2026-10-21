@@ -266,7 +266,13 @@
   function markFocus() {
     opts.forEach(o => o.classList.remove('is-focus'));
     const o = opts[visible[focusPos]];
-    if (o) { o.classList.add('is-focus'); o.scrollIntoView({ block: 'nearest' }); search.setAttribute('aria-activedescendant', o.id); }
+    if (o) {
+      o.classList.add('is-focus');
+      // scroll only the list (scrollIntoView would also scroll the glass card in variant B)
+      if (o.offsetTop < list.scrollTop) list.scrollTop = o.offsetTop;
+      else if (o.offsetTop + o.offsetHeight > list.scrollTop + list.clientHeight) list.scrollTop = o.offsetTop + o.offsetHeight - list.clientHeight;
+      search.setAttribute('aria-activedescendant', o.id);
+    }
   }
   function chooseCoin(i) {
     const c = COINS[i];

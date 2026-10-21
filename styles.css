@@ -212,7 +212,7 @@ html, body { overflow-x: clip; }
 .select__search:focus-within { border-color: var(--text); }
 .select__search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-weight: 400; font-size: 16px; color: var(--text); padding: 0; }
 .select__search input::placeholder { color: var(--text-secondary); }
-.select__list { margin: 0; padding: 0; list-style: none; max-height: 420px; overflow-y: auto; overflow-x: hidden; }
+.select__list { position: relative; margin: 0; padding: 0; list-style: none; max-height: 420px; overflow-y: auto; overflow-x: hidden; }
 .select__empty { padding: 16px 10px; font-size: 15px; color: var(--text-secondary); }
 .select__opt { display: flex; align-items: center; gap: 12px; white-space: nowrap; padding: 12px 10px; border-radius: 10px; cursor: pointer; font-weight: 500; font-size: 16px; transition: background .15s; }
 .select__opt:hover, .select__opt.is-focus { background: var(--bg-darker); }
@@ -551,7 +551,7 @@ html, body { overflow-x: clip; }
 .variant-b .hero__sub { width: 444px; }
 .variant-b .hero__card {
   position: relative; display: block; flex: none; width: 440px; height: 560px; padding: 24px;
-  border-radius: 32px; overflow: hidden; color: var(--text);
+  border-radius: 32px; overflow: visible; color: var(--text);
   background: rgba(255, 255, 255, .4); border: 1px solid rgba(255, 255, 255, .55);
   backdrop-filter: blur(14px) saturate(1.1); -webkit-backdrop-filter: blur(14px) saturate(1.1);
   animation: fadeUp 1s var(--ease-out) both .45s;
@@ -568,7 +568,7 @@ html, body { overflow-x: clip; }
 .calc--card .calc__receive { order: 2; margin-top: 16px; }
 .calc--card .calc__right-title { order: 3; margin-top: 24px; }
 .calc--card .calc__value { order: 4; margin-top: 32px; }
-.calc--card .slider { order: 5; margin: 32px 0 0 -51.25px; }   /* 494.5px rail overflows the card edge to edge, as in Figma */
+.calc--card .slider { order: 5; width: 438px; margin: 32px 0 0 -23px; }   /* rail runs edge to edge across the card (inside its 1px border), as in Figma */
 .calc--card .calc__meta { order: 6; margin-top: auto; color: var(--text); }
 .calc--card .calc__meta .muted { color: var(--text); }
 .calc--card .calc__foot { order: 7; margin-top: 12px; width: auto; color: var(--text); }
@@ -576,4 +576,4 @@ html, body { overflow-x: clip; }
 .calc--card .field { min-width: 0; }
 .calc--card .input-box { background: transparent; }
 .calc--card .receive-box { gap: 12px; padding: 16px; background: rgba(255, 254, 248, .6); }
-.calc--card .select__panel { min-width: max(100%, 300px); }
+.calc--card .select__panel { min-width: max(100%, 300px); z-index: 30; }
