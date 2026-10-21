@@ -157,9 +157,11 @@ html, body { overflow-x: clip; }
 .input-box:focus-within, .select.is-open .input-box { border-color: var(--text); }
 .input-box__cur { margin-right: -4px; }
 .input-box input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; color: inherit; padding: 0; }
+.input-box__steps { flex: none; display: flex; align-items: center; gap: 16px; }
+.input-box__plus:disabled { opacity: .3; cursor: default; transform: none; }
 .input-box__plus { flex: none; width: 24px; height: 24px; border-radius: 50%; transition: transform .35s var(--ease-spring); }
-.input-box__plus:hover { transform: rotate(90deg) scale(1.1); }
-.input-box__plus:active { transform: rotate(90deg) scale(.9); transition-duration: .1s; }
+.input-box__plus:not(:disabled):hover { transform: rotate(90deg) scale(1.1); }
+.input-box__plus:not(:disabled):active { transform: rotate(90deg) scale(.9); transition-duration: .1s; }
 .input-box__plus:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 .input-box.is-bump { animation: bump .35s var(--ease-out); }
 @keyframes bump { 50% { transform: scale(1.02); } }

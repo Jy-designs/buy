@@ -138,7 +138,7 @@
     els.value.classList.toggle('is-down', state.pct < 0);
   }
 
-  function renderAll() { renderRates(); renderSlider(); }
+  function renderAll() { renderRates(); renderSlider(); const m = document.getElementById('investMinus'); if (m) m.disabled = state.invest <= 0; }
 
   // ---------------------------------------------------------------- slider interaction
   function pctFromClientX(clientX) {
@@ -201,13 +201,16 @@
   els.invest.addEventListener('blur', () => {
     els.invest.value = state.invest ? state.invest.toLocaleString('en-GB', { maximumFractionDigits: 2 }) : '0';
   });
-  // plus button: add €10
-  $('#investPlus').addEventListener('click', () => {
-    state.invest = Math.min(MAX_INVEST, Math.round((state.invest + 10) * 100) / 100);
+  // plus / minus buttons: ±€10, never below €0
+  const minusBtn = $('#investMinus');
+  function stepInvest(delta) {
+    state.invest = Math.max(0, Math.min(MAX_INVEST, Math.round((state.invest + delta) * 100) / 100));
     els.invest.value = state.invest.toLocaleString('en-GB', { maximumFractionDigits: 2 });
     els.investBox.classList.remove('is-bump'); void els.investBox.offsetWidth; els.investBox.classList.add('is-bump');
     renderAll();
-  });
+  }
+  $('#investPlus').addEventListener('click', () => stepInvest(10));
+  minusBtn.addEventListener('click', () => stepInvest(-10));
   els.invest.addEventListener('keydown', e => {
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault();

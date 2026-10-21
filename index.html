@@ -64,7 +64,10 @@
             <div class="input-box" id="investBox">
               <span class="input-box__cur">€</span>
               <input id="invest" type="text" inputmode="decimal" autocomplete="off" value="100" aria-label="Amount in euros" />
-              <button class="input-box__plus" id="investPlus" type="button" aria-label="Add €10"><img src="assets/plus-circle.svg" width="24" height="24" alt="" /></button>
+              <div class="input-box__steps">
+                <button class="input-box__plus" id="investMinus" type="button" aria-label="Remove €10"><img src="assets/minus-circle.svg" width="24" height="24" alt="" /></button>
+                <button class="input-box__plus" id="investPlus" type="button" aria-label="Add €10"><img src="assets/plus-circle.svg" width="24" height="24" alt="" /></button>
+              </div>
             </div>
           </div>
           <div class="field">
