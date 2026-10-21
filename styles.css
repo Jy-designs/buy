@@ -69,10 +69,10 @@ html, body { overflow-x: clip; }
 .btn--w440 { width: 440px; }
 
 /* ============ Nav ============ */
-/* fixed top bar: A/B tabs, then the nav 2rem below */
+/* fixed top bar holding the nav */
 .topbar {
   position: fixed; z-index: 50; top: 36px; left: 50%; width: 1400px; margin-left: -700px;
-  display: flex; flex-direction: column; align-items: center; gap: 2rem;
+  display: flex; flex-direction: column; align-items: center;
   animation: navIn .9s var(--ease-out) both .1s;
   transition: top .4s var(--ease-out);
   pointer-events: none;
@@ -98,12 +98,13 @@ html, body { overflow-x: clip; }
 }
 .tabs__pill {
   position: absolute; z-index: 0; top: 0; left: 0; width: calc(50% - 2px); height: 32px; border-radius: 9999px;
-  background: var(--bg); box-shadow: 0 0 2px rgba(0, 0, 0, .1), 0 1px 8px rgba(0, 0, 0, .12);
+  background: #fff; box-shadow: 0 0 2px rgba(0, 0, 0, .1), 0 1px 8px rgba(0, 0, 0, .12);
   transition: transform .45s var(--ease-out);
 }
 .tabs[data-active="b"] .tabs__pill { transform: translateX(calc(100% + 4px)); }
 .tabs__item:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 @keyframes navIn { from { opacity: 0; transform: translateY(-30px); } }
+.nav__left { display: flex; align-items: center; gap: 1rem; }
 .nav__logo img { width: 129.73px; height: 24px; }
 .nav__menu { display: flex; align-items: center; gap: 16px; }
 .nav__link { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; font-size: 16px; line-height: 1; position: relative; }
@@ -299,7 +300,7 @@ html, body { overflow-x: clip; }
 .steps__head { display: flex; flex-direction: column; align-items: center; gap: 32px; text-align: center; }
 .steps__list { display: flex; flex-direction: column; gap: 48px; margin-top: 64px; }
 .step {
-  position: sticky; top: 168px; height: 496px; flex: none;
+  position: sticky; top: 124px; height: 496px; flex: none;
   border-radius: 32px; border: 2px solid var(--stroke); background: var(--bg); overflow: hidden;
   box-shadow: 0 -30px 66px rgba(204, 204, 204, .1), 0 -119px 119px rgba(204, 204, 204, .09), 0 -269px 161px rgba(204, 204, 204, .05);
   transform-origin: 50% 0; will-change: transform;

@@ -12,13 +12,15 @@
 
   <!-- ============ VARIANT TABS + NAV ============ -->
   <div class="topbar" id="topbar">
-  <div class="tabs" role="tablist" aria-label="Design variant">
-    <span class="tabs__pill" aria-hidden="true"></span>
-    <button class="tabs__item is-active" role="tab" type="button" aria-selected="true" data-variant="a">A</button>
-    <button class="tabs__item" role="tab" type="button" aria-selected="false" data-variant="b">B</button>
-  </div>
   <header class="nav" id="nav">
-    <a href="#" class="nav__logo" aria-label="Venga home"><img src="assets/logo.svg" width="130" height="24" alt="Venga" /></a>
+    <div class="nav__left">
+      <a href="#" class="nav__logo" aria-label="Venga home"><img src="assets/logo.svg" width="130" height="24" alt="Venga" /></a>
+      <div class="tabs" role="tablist" aria-label="Design variant">
+        <span class="tabs__pill" aria-hidden="true"></span>
+        <button class="tabs__item is-active" role="tab" type="button" aria-selected="true" data-variant="a">A</button>
+        <button class="tabs__item" role="tab" type="button" aria-selected="false" data-variant="b">B</button>
+      </div>
+    </div>
     <nav class="nav__menu" aria-label="Main">
       <div class="nav__item nav__item--dd">
         <button class="nav__link" type="button">TRADE <img src="assets/nav-arrow-down.svg" width="16" height="16" alt="" class="nav__chev" /></button>
