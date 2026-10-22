@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=1440" />
   <title>Buy Crypto · Venga</title>
   <meta name="description" content="Buy crypto in your Venga account with a single transfer from your bank." />
-  <link rel="stylesheet" href="styles.css?v=202610211143" />
+  <link rel="stylesheet" href="styles.css?v=202610221046" />
 </head>
 <body>
 <div class="page">
@@ -20,6 +20,8 @@
         <button class="tabs__item is-active" role="tab" type="button" aria-selected="true" data-variant="a">A</button>
         <button class="tabs__item" role="tab" type="button" aria-selected="false" data-variant="b">B</button>
         <button class="tabs__item" role="tab" type="button" aria-selected="false" data-variant="c">C</button>
+        <button class="tabs__item" role="tab" type="button" aria-selected="false" data-variant="d">D</button>
+        <button class="tabs__item" role="tab" type="button" aria-selected="false" data-variant="e">E</button>
       </div>
     </div>
     <nav class="nav__menu" aria-label="Main">
@@ -71,92 +73,8 @@
       <p class="subtitle trim calc-section__sub">Set your ideal investment then drag to see how price moves change its value in euros.</p>
     </div>
 
-    <div id="calcHome"></div>
-    <div class="calc reveal" id="calc">
-      <!-- left -->
-      <div class="calc__left">
-        <div class="calc__fields">
-          <div class="field">
-            <label class="label trim" for="invest">You invest</label>
-            <div class="input-box" id="investBox">
-              <span class="input-box__cur">€</span>
-              <input id="invest" type="text" inputmode="decimal" autocomplete="off" value="100" aria-label="Amount in euros" />
-              <div class="input-box__steps">
-                <button class="input-box__plus" id="investMinus" type="button" aria-label="Remove €10"><img src="assets/minus-circle.svg" width="24" height="24" alt="" /></button>
-                <button class="input-box__plus" id="investPlus" type="button" aria-label="Add €10"><img src="assets/plus-circle.svg" width="24" height="24" alt="" /></button>
-              </div>
-            </div>
-          </div>
-          <div class="field">
-            <span class="label trim">Crypto</span>
-            <div class="select" id="select">
-              <button class="input-box select__btn" type="button" id="selectBtn" aria-haspopup="listbox" aria-expanded="false">
-                <img class="select__icon" id="selIcon" src="assets/btc-icon.svg" alt="" />
-                <span class="select__name" id="selName">Bitcoin</span>
-                <img class="select__chev" src="assets/nav-arrow-right.svg" width="24" height="24" alt="" />
-              </button>
-              <div class="select__panel" id="selectPanel">
-                <label class="select__search">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="#707070" stroke-width="1.5"/><path d="M20 20l-3.5-3.5" stroke="#707070" stroke-width="1.5" stroke-linecap="round"/></svg>
-                  <input id="selectSearch" type="text" placeholder="Search for a crypto" autocomplete="off" spellcheck="false" aria-label="Search for a crypto" aria-controls="selectList" />
-                </label>
-                <ul class="select__list" id="selectList" role="listbox"></ul>
-                <p class="select__empty" id="selectEmpty" hidden>No coins match your search.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="calc__receive">
-          <span class="label trim">You receive</span>
-          <div class="receive-box">
-            <img class="receive-box__coin" id="receiveCoin" src="assets/coin-btc.png" width="67" height="67" alt="" />
-            <div class="receive-box__text">
-              <p class="receive-box__amt trim" id="receiveAmt"><span class="skeleton">0.000000 BTC</span></p>
-              <p class="receive-box__note trim"><span class="note--a">Estimated amount. Actual transaction rates may differ.</span><span class="note--b">Estimated amount. Transaction rates may differ.</span></p>
-            </div>
-          </div>
-        </div>
-
-        <div class="calc__meta">
-          <p class="trim"><span class="muted">Reference rate:</span> <span class="strong" id="refRate">loading live rate…</span></p>
-          <p class="trim muted" id="updated">Last updated: —</p>
-        </div>
-      </div>
-
-      <div class="calc__divider" aria-hidden="true"></div>
-
-      <!-- right -->
-      <div class="calc__right">
-        <p class="calc__right-title trim">If the price moves</p>
-        <p class="calc__value trim" id="calcValue" aria-live="polite">€100</p>
-
-        <div class="calc__slider-wrap">
-          <div class="slider" id="slider">
-            <div class="slider__tag" id="tag">
-              <div class="tag">
-                <img class="tag__pattern" src="assets/tag-pattern.svg" alt="" />
-                <span class="tag__glass"></span>
-                <span class="tag__text" id="tagText">0%</span>
-              </div>
-              <img class="tag__pointer" src="assets/tag-pointer.svg" alt="" />
-            </div>
-            <div class="slider__rail" id="rail">
-              <div class="slider__track"><div class="slider__fill" id="fill"></div></div>
-              <button class="slider__tick" id="tick" type="button" aria-label="Reset to 0%"><img src="assets/tick.svg" width="4" height="4" alt="" /></button>
-              <div class="slider__knob" id="knob" role="slider" tabindex="0" aria-label="Price change" aria-valuemin="-100" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0%"></div>
-            </div>
-          </div>
-
-          <div class="calc__foot">
-            <p class="trim" id="sameLine">Same 0.000000 BTC.&nbsp; A different value in euros.</p>
-            <p class="trim">Hypothetical scenario, not a forecast.</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="calc__coin" id="calcCoin"><img id="calcCoinImg" src="assets/coin-btc.png" alt="" /></div>
-    </div>
+    <!-- A: the calculator is rendered here by app.js; B–E render it into the hero card -->
+    <div class="calc-home reveal" id="calcHome"></div>
   </section>
 
   <!-- ============ STEPS ============ -->
@@ -267,14 +185,28 @@
     </div>
 
     <div class="explore">
-      <div class="explore__head reveal">
-        <h2 class="h2 trim">Explore our crypto assets</h2>
-        <div class="subtitle explore__copy"><p class="trim">The Venga app is currently allowing you to buy some of the major cryptocurrencies such as Bitcoin (BTC), Ethereum (ETH), Chainlink (LINK), and more.</p><p class="trim">We keep on adding more assets to expand your investment opportunities!</p></div>
-      </div>
-      <div class="carousel reveal" id="carousel">
-        <div class="carousel__track" id="carouselTrack"></div>
-        <div class="carousel__fade carousel__fade--l"></div>
-        <div class="carousel__fade carousel__fade--r"></div>
+      <div class="explore__row">
+        <img class="explore__phone reveal" src="assets/explore-phone.png" width="253" height="526" alt="Venga app showing a Bitcoin wallet" />
+        <div class="explore__text reveal" style="--d:.1s">
+          <h2 class="h2 explore__title trim">Explore our crypto assets</h2>
+          <p class="subtitle trim">The Venga app is currently allowing you to buy some of the major cryptocurrencies such as Bitcoin (BTC), Ethereum (ETH), Chainlink (LINK), and more.<br /><br />We keep on adding more assets to expand your investment opportunities!</p>
+          <div class="explore__assets">
+            <div class="chips">
+            <a href="#" class="chip"><img class="chip__icon" src="assets/chips/avax.svg" width="32" height="32" alt="" /><span>AVAX</span><img class="chip__arrow" src="assets/chips/chip-arrow.svg" width="20" height="20" alt="" /></a>
+            <a href="#" class="chip"><img class="chip__icon" src="assets/chips/ada.svg" width="32" height="32" alt="" /><span>ADA</span><img class="chip__arrow" src="assets/chips/chip-arrow.svg" width="20" height="20" alt="" /></a>
+            <a href="#" class="chip"><img class="chip__icon" src="assets/chips/bnb.png" width="32" height="32" alt="" /><span>BNB</span><img class="chip__arrow" src="assets/chips/chip-arrow.svg" width="20" height="20" alt="" /></a>
+            <a href="#" class="chip"><img class="chip__icon" src="assets/chips/btc.svg" width="32" height="32" alt="" /><span>BTC</span><img class="chip__arrow" src="assets/chips/chip-arrow.svg" width="20" height="20" alt="" /></a>
+            <a href="#" class="chip"><img class="chip__icon" src="assets/chips/doge.svg" width="32" height="32" alt="" /><span>DOGE</span><img class="chip__arrow" src="assets/chips/chip-arrow.svg" width="20" height="20" alt="" /></a>
+            <a href="#" class="chip"><img class="chip__icon" src="assets/chips/eth.svg" width="32" height="32" alt="" /><span>ETH</span><img class="chip__arrow" src="assets/chips/chip-arrow.svg" width="20" height="20" alt="" /></a>
+            <a href="#" class="chip"><img class="chip__icon" src="assets/chips/sui.png" width="32" height="32" alt="" /><span>SUI</span><img class="chip__arrow" src="assets/chips/chip-arrow.svg" width="20" height="20" alt="" /></a>
+            <a href="#" class="chip"><img class="chip__icon" src="assets/chips/grt.png" width="32" height="32" alt="" /><span>GRT</span><img class="chip__arrow" src="assets/chips/chip-arrow.svg" width="20" height="20" alt="" /></a>
+            <a href="#" class="chip"><img class="chip__icon" src="assets/chips/sol.svg" width="32" height="32" alt="" /><span>SOL</span><img class="chip__arrow" src="assets/chips/chip-arrow.svg" width="20" height="20" alt="" /></a>
+            <a href="#" class="chip"><img class="chip__icon" src="assets/chips/trx.png" width="32" height="32" alt="" /><span>TRX</span><img class="chip__arrow" src="assets/chips/chip-arrow.svg" width="20" height="20" alt="" /></a>
+            <a href="#" class="chip"><img class="chip__icon" src="assets/chips/xrp.svg" width="32" height="32" alt="" /><span>XRP</span><img class="chip__arrow" src="assets/chips/chip-arrow.svg" width="20" height="20" alt="" /></a>
+            </div>
+            <a href="#" class="explore__link"><span class="trim">See all our available coins</span> <img src="assets/link-arrow.svg" width="24" height="24" alt="" /></a>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -459,6 +391,6 @@
   </section>
 
 </div>
-<script src="app.js?v=202610211143"></script>
+<script src="app.js?v=202610221046"></script>
 </body>
 </html>

@@ -71,151 +71,285 @@
         if (k) state.prices[c.sym] = parseFloat(json.result[k].c[0]); // c[0] = last trade price
       }
       state.updatedAt = new Date();
-      renderRates();
-      renderOptionPrices();
+      updateRates();
+      updateOptionPrices();
     } catch (err) {
       console.warn('Kraken price fetch failed:', err);
-      if (!state.updatedAt) {
-        $('#refRate').textContent = 'live rate unavailable, retrying…';
-        $('#receiveAmt').innerHTML = '<span class="skeleton">0.000000 ' + state.coin.sym + '</span>';
-      }
+      if (!state.updatedAt) setAll('ref', 'live rate unavailable, retrying…');
     }
   }
 
-  // ---------------------------------------------------------------- calculator render
-  const els = {
-    invest: $('#invest'), investBox: $('#investBox'),
-    receive: $('#receiveAmt'), refRate: $('#refRate'), updated: $('#updated'),
-    value: $('#calcValue'), same: $('#sameLine'),
-    slider: $('#slider'), rail: $('#rail'), knob: $('#knob'), fill: $('#fill'), tag: $('#tag'), tagText: $('#tagText'),
-    coinWrap: $('#calcCoin'), coinImg: $('#calcCoinImg'),
+  // ---------------------------------------------------------------- calculator: one engine, a template per variant
+  // The same state (amount, coin, % move, prices) drives every variant; switching tabs re-renders the markup.
+  let root = null;                                   // current .calc element
+  const roles = r => root ? $$(`[data-role="${r}"]`, root) : [];
+  const role = r => roles(r)[0] || null;
+  const setAll = (r, text) => roles(r).forEach(el => { el.textContent = text; });
+  const iconFor = c => c.icon || c.coin;
+  const clampPct = p => Math.max(-RANGE, Math.min(RANGE, p));
+  const priceNum = v => v.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: v < 1 ? 6 : 2 });
+  const signed = v => (v > 0 ? '+' : v < 0 ? '−' : '+') + Math.abs(v).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const withCoin = tpl => tpl.replace('{coin}', state.coin.name);
+
+  const ICON_MINUS = '<img src="assets/minus-circle.svg" width="24" height="24" alt="" />';
+  const ICON_PLUS = '<img src="assets/plus-circle.svg" width="24" height="24" alt="" />';
+  const ICON_SEARCH = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="#707070" stroke-width="1.5"/><path d="M20 20l-3.5-3.5" stroke="#707070" stroke-width="1.5" stroke-linecap="round"/></svg>';
+
+  // ---- template pieces (cls = spacing utility from the Figma layout)
+  const H = {
+    invest: euroIcon => `
+      <div class="field">
+        <label class="label trim" for="invest">You invest</label>
+        <div class="input-box" data-role="investBox">
+          ${euroIcon ? '<span class="input-box__euro"><span><img src="assets/euro-glyph.svg" alt="" /></span></span>' : '<span class="input-box__cur">€</span>'}
+          <input id="invest" data-role="invest" type="text" inputmode="decimal" autocomplete="off" aria-label="Amount in euros" />
+          <div class="input-box__steps">
+            <button class="input-box__plus" data-step="invest" data-dir="-1" type="button" aria-label="Remove €10">${ICON_MINUS}</button>
+            <button class="input-box__plus" data-step="invest" data-dir="1" type="button" aria-label="Add €10">${ICON_PLUS}</button>
+          </div>
+        </div>
+      </div>`,
+    crypto: () => `
+      <div class="field">
+        <span class="label trim">Crypto</span>
+        <div class="select" data-role="select">
+          <button class="input-box select__btn" type="button" data-role="selectBtn" aria-haspopup="listbox" aria-expanded="false">
+            <img class="select__icon" data-role="selIcon" src="${iconFor(state.coin)}" alt="" />
+            <span class="select__name" data-role="selName">${state.coin.name}</span>
+            <img class="select__chev" src="assets/nav-arrow-right.svg" width="24" height="24" alt="" />
+          </button>
+          <div class="select__panel" data-role="panel">
+            <label class="select__search">${ICON_SEARCH}<input data-role="search" type="text" placeholder="Search for a crypto" autocomplete="off" spellcheck="false" aria-label="Search for a crypto" /></label>
+            <ul class="select__list" data-role="list" role="listbox">${COINS.map((c, i) => `
+              <li class="select__opt" role="option" id="opt-${c.sym}" data-i="${i}" aria-selected="${c === state.coin}">
+                <img src="${iconFor(c)}" alt="" /><span class="select__label">${c.name}<span class="sym">${c.sym}</span></span><span class="px" data-px="${c.sym}"></span>
+              </li>`).join('')}
+            </ul>
+            <p class="select__empty" data-role="empty" hidden>No coins match your search.</p>
+          </div>
+        </div>
+      </div>`,
+    fields: (euroIcon, cls = '') => `<div class="calc__fields ${cls}">${H.invest(euroIcon)}${H.crypto()}</div>`,
+    receive: (withCoinImg, cls = '') => `
+      <div class="calc__receive ${cls}">
+        <span class="label trim">You receive</span>
+        ${withCoinImg ? `
+        <div class="receive-box receive-box--coin">
+          <img class="receive-box__coin" data-role="receiveCoin" src="${state.coin.coin}" width="67" height="67" alt="" />
+          <div class="receive-box__text">
+            <p class="receive-box__amt trim" data-role="receive"></p>
+            <p class="receive-box__note trim">Estimated amount. Transaction rates may differ.</p>
+          </div>
+        </div>` : `
+        <div class="receive-box">
+          <p class="receive-box__amt trim" data-role="receive"></p>
+          <p class="receive-box__note trim">Estimated amount. Actual transaction rates may differ.</p>
+        </div>`}
+      </div>`,
+    meta: (small, cls = '') => `
+      <div class="calc__meta ${small ? 'calc__meta--sm' : ''} ${cls}">
+        <p class="trim"><span class="muted">Reference rate:</span> <span class="strong" data-role="ref">loading live rate…</span></p>
+        <p class="trim muted" data-role="updated">Last updated: —</p>
+      </div>`,
+    what: (tpl, cls = '') => `<p class="calc__what trim ${cls}" data-role="coinText" data-tpl="${tpl}">${withCoin(tpl)}</p>`,
+    value: (cls = '') => `<p class="calc__value trim ${cls}" data-role="value" aria-live="polite"></p>`,
+    current: () => `
+      <div class="field">
+        <span class="label trim" data-role="coinText" data-tpl="Current {coin} price">${withCoin('Current {coin} price')}</span>
+        <div class="input-box input-box--readonly"><span class="input-box__cur">€</span><span class="input-box__val" data-role="current">—</span></div>
+      </div>`,
+    future: tpl => `
+      <div class="field">
+        <label class="label trim" for="future" data-role="coinText" data-tpl="${tpl}">${withCoin(tpl)}</label>
+        <div class="input-box" data-role="futureBox">
+          <span class="input-box__cur">€</span>
+          <input id="future" data-role="future" type="text" inputmode="decimal" autocomplete="off" />
+          <div class="input-box__steps">
+            <button class="input-box__plus" data-step="future" data-dir="-1" type="button" aria-label="Lower the future price by 1%">${ICON_MINUS}</button>
+            <button class="input-box__plus" data-step="future" data-dir="1" type="button" aria-label="Raise the future price by 1%">${ICON_PLUS}</button>
+          </div>
+        </div>
+      </div>`,
+    prices: (cls = '') => `<div class="calc__prices ${cls}">${H.current()}${H.future('Future {coin} price')}</div>`,
+    slider: (cls = '', small = false) => `
+      <div class="slider ${small ? 'slider--sm' : ''} ${cls}" data-role="slider">
+        <div class="slider__tag">
+          <div class="tag"><img class="tag__pattern" src="assets/tag-pattern.svg" alt="" /><span class="tag__glass"></span><span class="tag__text" data-role="tagText">0%</span></div>
+          <img class="tag__pointer" src="assets/tag-pointer.svg" alt="" />
+        </div>
+        <div class="slider__rail">
+          <div class="slider__track"><div class="slider__fill" data-role="fill"></div></div>
+          <button class="slider__tick" data-role="tick" type="button" aria-label="Reset to 0%"><img src="assets/tick.svg" width="4" height="4" alt="" /></button>
+          <div class="slider__knob" data-role="knob" role="slider" tabindex="0" aria-label="Price change" aria-valuemin="-100" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0%"></div>
+        </div>
+      </div>`,
+    worth: (cls = '') => `
+      <div class="calc__worth ${cls}">
+        <span class="label trim">Your crypto would be worth</span>
+        <div class="worth-box">
+          <div class="worth-box__row"><p class="worth-box__val trim" data-role="worth"></p><p class="worth-box__gain trim" data-role="gain"></p></div>
+          <p class="worth-box__note trim">Estimated amount. Transaction rates may differ. | Hypothetical scenario, not a forecast.</p>
+        </div>
+      </div>`,
+    updated: (cls = '') => `<p class="calc__small trim ${cls}" data-role="updated">Last updated: —</p>`,
+    foot: (cls = '') => `<p class="calc__small trim ${cls}">Hypothetical scenario, not a forecast.</p>`,
   };
 
-  function cryptoAmount() {
-    const p = state.prices[state.coin.sym];
-    return p ? state.invest / p : null;
+  // ---- one layout per variant (spacing from the Figma frames)
+  const TEMPLATES = {
+    a: () => `
+      <div class="calc calc--a">
+        <div class="calc__col">
+          <p class="calc__title trim">Euro to crypto calculator</p>
+          ${H.fields(false, 'mt32')}
+          ${H.receive(false, 'mt32')}
+          ${H.meta(false, 'mt16')}
+        </div>
+        <div class="calc__divider" aria-hidden="true"></div>
+        <div class="calc__col">
+          ${H.what('What if price changes?')}
+          ${H.prices('mt32')}
+          ${H.slider('mt16')}
+          ${H.worth('mt16')}
+          ${H.updated('mt8')}
+        </div>
+      </div>`,
+    b: () => `
+      <div class="calc calc--card">
+        ${H.fields(false)}
+        ${H.receive(true, 'mt16')}
+        ${H.what('What if {coin} price changes?', 'mt24')}
+        ${H.value('mt32')}
+        ${H.slider('mt32')}
+        ${H.meta(true, 'mtauto')}
+        ${H.foot('mt12')}
+      </div>`,
+    c: () => `
+      <div class="calc calc--card">
+        ${H.fields(false)}
+        ${H.receive(true, 'mt16')}
+        ${H.what('What if {coin} price changes?', 'mt24')}
+        ${H.prices('mt32')}
+        ${H.slider('mt16')}
+        ${H.worth('mt16')}
+        ${H.updated('mt8')}
+      </div>`,
+    d: () => `
+      <div class="calc calc--card">
+        ${H.fields(false)}
+        ${H.receive(true, 'mt16')}
+        ${H.what('What if the price changes?', 'mt24')}
+        <div class="calc__row mt32">${H.slider('', true)}${H.future('Future price')}</div>
+        ${H.worth('mt16')}
+        ${H.meta(true, 'mt16')}
+        ${H.foot('mt12')}
+      </div>`,
+    e: () => `
+      <div class="calc calc--card">
+        <p class="calc__title calc__title--lg trim">Euro → crypto calculator</p>
+        ${H.fields(true, 'mt24')}
+        ${H.receive(true, 'mt16')}
+        ${H.meta(false, 'mt16')}
+      </div>`,
+  };
+
+  // ---- updates (only touch what the current template has)
+  function updateRates() {
+    const c = state.coin, p = state.prices[c.sym];
+    roles('receive').forEach(el => {
+      if (p) el.textContent = qty(state.invest / p) + ' ' + c.sym;
+      else el.innerHTML = '<span class="skeleton">0.000000 ' + c.sym + '</span>';
+    });
+    if (p) setAll('ref', '1 ' + c.sym + ' = ' + eurRate(p) + ' | Fees excluded.');
+    setAll('current', p ? priceNum(p) : '—');
+    if (state.updatedAt) setAll('updated', updatedLabel(state.updatedAt));
+    roles('coinText').forEach(el => { el.textContent = withCoin(el.dataset.tpl); });
+    updateMove();
   }
 
-  function renderRates() {
-    const p = state.prices[state.coin.sym];
-    const amt = cryptoAmount();
-    if (p) {
-      els.receive.textContent = qty(amt) + ' ' + state.coin.sym;
-      els.refRate.textContent = '1 ' + state.coin.sym + ' = ' + eurRate(p) + ' | Fees excluded.';
-      els.same.textContent = 'Same ' + qty(amt) + ' ' + state.coin.sym + '.  A different value in euros.';
-    }
-    if (state.updatedAt) els.updated.textContent = updatedLabel(state.updatedAt);
-  }
-
-  // Animated euro value (eases toward target each frame)
+  // Animated euro value for B's big number (eases toward target each frame)
   let shown = state.invest, target = state.invest, raf = 0;
-  function setValueTarget(v) {
-    target = v;
-    if (!raf) raf = requestAnimationFrame(stepValue);
-  }
+  function setValueTarget(v) { target = v; if (!raf) raf = requestAnimationFrame(stepValue); }
   function stepValue() {
     shown += (target - shown) * 0.22;
     if (Math.abs(target - shown) < 0.005) shown = target;
-    els.value.textContent = eur(shown === target ? target : Math.round(shown * 100) / 100);
+    setAll('value', eur(shown === target ? target : Math.round(shown * 100) / 100));
     raf = shown === target ? 0 : requestAnimationFrame(stepValue);
   }
 
-  function renderSlider() {
-    const W = els.slider.offsetWidth;          // 494.5px
-    const half = W / 2;
-    const travel = half - 19;                  // keep the 38px knob inside the rail
-    const x = half + (state.pct / RANGE) * travel;
-    els.slider.style.setProperty('--x', x + 'px');
-    els.fill.style.left = Math.min(x, half) + 'px';
-    els.fill.style.width = Math.abs(x - half) + 'px';
-    els.tagText.textContent = pctLabel(state.pct);
-    els.knob.setAttribute('aria-valuenow', state.pct);
-    els.knob.setAttribute('aria-valuetext', pctLabel(state.pct));
-
-    const v = state.invest * (1 + state.pct / 100);
-    setValueTarget(v);
-    els.value.classList.toggle('is-up', state.pct > 0);
-    els.value.classList.toggle('is-down', state.pct < 0);
+  // everything that depends on the % move: slider, future price, worth, gain, big value
+  function updateMove() {
+    const pct = state.pct, worth = state.invest * (1 + pct / 100), gain = worth - state.invest;
+    const slider = role('slider');
+    if (slider) {
+      const W = slider.offsetWidth, half = W / 2;
+      const kw = parseFloat(getComputedStyle(slider).getPropertyValue('--kw')) || 38;
+      const x = half + (pct / RANGE) * (half - kw / 2);
+      slider.style.setProperty('--x', x + 'px');
+      const fill = role('fill');
+      fill.style.left = Math.min(x, half) + 'px';
+      fill.style.width = Math.abs(x - half) + 'px';
+      role('tagText').textContent = pctLabel(pct);
+      const knob = role('knob');
+      knob.setAttribute('aria-valuenow', pct);
+      knob.setAttribute('aria-valuetext', pctLabel(pct));
+    }
+    const p = state.prices[state.coin.sym];
+    const fut = role('future');
+    if (fut && document.activeElement !== fut) fut.value = p ? priceNum(p * (1 + pct / 100)) : '';
+    setAll('worth', eur(worth, true));
+    roles('gain').forEach(el => {
+      el.textContent = signed(gain) + ' on your ' + eur(state.invest);
+      el.classList.toggle('is-down', gain < 0);
+      el.classList.toggle('is-flat', gain === 0);
+    });
+    if (role('value')) {
+      setValueTarget(worth);
+      roles('value').forEach(el => { el.classList.toggle('is-up', pct > 0); el.classList.toggle('is-down', pct < 0); });
+    }
   }
 
-  function renderAll() { renderRates(); renderSlider(); const m = document.getElementById('investMinus'); if (m) m.disabled = state.invest <= 0; }
-
-  // ---------------------------------------------------------------- slider interaction
-  function pctFromClientX(clientX) {
-    const r = els.slider.getBoundingClientRect();
-    const half = r.width / 2, travel = half - 19;
-    const raw = ((clientX - r.left - half) / travel) * RANGE;
-    return Math.max(-RANGE, Math.min(RANGE, Math.round(raw)));   // snap to 1% steps
+  function updateInvestField() {
+    const inp = role('invest');
+    if (inp && document.activeElement !== inp) inp.value = state.invest.toLocaleString('en-GB', { maximumFractionDigits: 2 });
+    roles('investBox').forEach(box => {
+      const minus = box.querySelector('[data-dir="-1"]');
+      if (minus) minus.disabled = state.invest <= 0;
+    });
   }
+  function updateAll() { updateInvestField(); updateRates(); }
+
   function setPct(p, animate) {
+    p = clampPct(p);
     if (p === state.pct && !animate) return;
-    els.slider.classList.toggle('is-animating', !!animate);
+    const slider = role('slider');
+    if (slider) slider.classList.toggle('is-animating', !!animate);
     state.pct = p;
-    renderSlider();
+    updateMove();
   }
-  // Only the knob drags; clicking the track does nothing. The centre dot resets to 0%.
-  let dragging = false, grabOffset = 0;
-  els.knob.addEventListener('pointerdown', e => {
-    dragging = true;
-    const k = els.knob.getBoundingClientRect();
-    grabOffset = e.clientX - (k.left + k.width / 2);   // keep the knob under the finger, no jump
-    els.knob.setPointerCapture(e.pointerId);
-    els.slider.classList.remove('is-animating');
-    els.slider.classList.add('is-dragging');
-  });
-  els.knob.addEventListener('pointermove', e => {
-    if (!dragging) return;
-    setPct(pctFromClientX(e.clientX - grabOffset), false);
-  });
-  const endDrag = () => { dragging = false; els.slider.classList.remove('is-dragging'); };
-  els.knob.addEventListener('pointerup', endDrag);
-  els.knob.addEventListener('pointercancel', endDrag);
-  $('#tick').addEventListener('click', () => setPct(0, true));
-  els.knob.addEventListener('keydown', e => {
-    const map = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1, PageUp: 10, PageDown: -10 };
-    let p = state.pct;
-    if (e.key in map) p += map[e.key] * (e.shiftKey ? 10 : 1);
-    else if (e.key === 'Home') p = -RANGE;
-    else if (e.key === 'End') p = RANGE;
-    else return;
-    e.preventDefault();
-    setPct(Math.max(-RANGE, Math.min(RANGE, p)), true);
-  });
+  function setInvest(v) {
+    state.invest = Math.max(0, Math.min(MAX_INVEST, Math.round(v * 100) / 100));
+    updateAll();
+  }
 
-  // ---------------------------------------------------------------- invest input
+  // ---- input helpers
   const parseAmount = s => {
-    const n = parseFloat(String(s).replace(/[^\d.]/g, ''));
-    return isFinite(n) ? Math.min(n, MAX_INVEST) : 0;
+    const n = parseFloat(String(s).replace(/,/g, '').replace(/[^\d.]/g, ''));
+    return isFinite(n) ? n : 0;
   };
-  els.invest.addEventListener('input', () => {
-    // allow digits and a single decimal point (max 2 decimals)
-    let v = els.invest.value.replace(/,/g, '').replace(/[^\d.]/g, '');
+  const cleanTyping = v => {   // digits and one decimal point, max 2 decimals
+    v = v.replace(/,/g, '').replace(/[^\d.]/g, '');
     const [i, ...rest] = v.split('.');
-    v = rest.length ? i + '.' + rest.join('').slice(0, 2) : i;
-    if (parseFloat(v) > MAX_INVEST) v = String(MAX_INVEST);
-    els.invest.value = v;
-    state.invest = parseAmount(v);
-    renderAll();
-  });
-  els.invest.addEventListener('focus', () => { els.invest.value = String(state.invest || ''); els.invest.select(); });
-  els.invest.addEventListener('blur', () => {
-    els.invest.value = state.invest ? state.invest.toLocaleString('en-GB', { maximumFractionDigits: 2 }) : '0';
-  });
-  // plus / minus buttons: ±€10, never below €0
-  const minusBtn = $('#investMinus');
-  function stepInvest(delta) {
-    state.invest = Math.max(0, Math.min(MAX_INVEST, Math.round((state.invest + delta) * 100) / 100));
-    els.invest.value = state.invest.toLocaleString('en-GB', { maximumFractionDigits: 2 });
-    renderAll();
-  }
-  // press and hold to repeat: starts after 400ms, speeds up, and switches to €50 steps after ~2s
-  function holdToRepeat(btn, dir) {
+    return rest.length ? i + '.' + rest.join('').slice(0, 2) : i;
+  };
+
+  // press and hold to repeat: starts after 400ms, speeds up; `step(heldMs)` does one step and returns false at a limit
+  function holdToRepeat(btn, box, step) {
     let timer = 0, started = 0;
-    const stop = () => { clearTimeout(timer); timer = 0; els.investBox.classList.remove('is-active'); };
+    const stop = () => { clearTimeout(timer); timer = 0; box.classList.remove('is-active'); };
     const tick = () => {
       const held = performance.now() - started;
-      stepInvest(dir * (held > 2000 ? 50 : 10));
-      if ((dir < 0 && state.invest <= 0) || (dir > 0 && state.invest >= MAX_INVEST)) return stop();
+      if (step(held) === false) return stop();
       timer = setTimeout(tick, Math.max(40, 140 - held / 15));   // 140ms → 40ms as you keep holding
     };
     btn.addEventListener('pointerdown', e => {
@@ -223,113 +357,194 @@
       e.preventDefault();
       try { btn.setPointerCapture(e.pointerId); } catch (_) { /* keep working without capture */ }
       started = performance.now();
-      els.investBox.classList.add('is-active');   // primary (#111A29) outline while pressing
-      stepInvest(dir * 10);
+      box.classList.add('is-active');   // primary (#111A29) outline while pressing
+      step(0);
       timer = setTimeout(tick, 400);
     });
     ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => btn.addEventListener(t, stop));
-    // keyboard (Enter/Space) still steps once per press
-    btn.addEventListener('click', e => { if (e.detail === 0) stepInvest(dir * 10); });
+    btn.addEventListener('click', e => { if (e.detail === 0) step(0); });   // keyboard: one step per press
   }
-  holdToRepeat($('#investPlus'), 1);
-  holdToRepeat(minusBtn, -1);
-  els.invest.addEventListener('keydown', e => {
-    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-      e.preventDefault();
-      const step = e.shiftKey ? 100 : 10;
-      state.invest = Math.max(0, Math.min(MAX_INVEST, Math.round((state.invest + (e.key === 'ArrowUp' ? step : -step)) * 100) / 100));
-      els.invest.value = String(state.invest);
-        renderAll();
-    }
-    if (e.key === 'Enter') els.invest.blur();
-  });
 
-  // ---------------------------------------------------------------- crypto select
-  const select = $('#select'), selBtn = $('#selectBtn'), list = $('#selectList');
-  const iconFor = c => c.icon || c.coin;
-  list.innerHTML = COINS.map((c, i) =>
-    `<li class="select__opt" role="option" id="opt-${c.sym}" data-i="${i}" aria-selected="${i === 0}">
-       <img src="${iconFor(c)}" alt="" /><span class="select__label">${c.name}<span class="sym">${c.sym}</span></span><span class="px" data-px="${c.sym}"></span>
-     </li>`).join('');
-  function renderOptionPrices() {
-    $$('[data-px]', list).forEach(el => {
+  // ---- wire up a freshly rendered calculator
+  function bindCalc() {
+    // invest field
+    const invest = role('invest'), investBox = role('investBox');
+    invest.addEventListener('input', () => {
+      let v = cleanTyping(invest.value);
+      if (parseFloat(v) > MAX_INVEST) v = String(MAX_INVEST);
+      invest.value = v;
+      state.invest = parseAmount(v);
+      updateInvestField(); updateRates();
+    });
+    invest.addEventListener('focus', () => { invest.value = String(state.invest || ''); invest.select(); });
+    invest.addEventListener('blur', updateInvestField);
+    invest.addEventListener('keydown', e => {
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        setInvest(state.invest + (e.key === 'ArrowUp' ? 1 : -1) * (e.shiftKey ? 100 : 10));
+        invest.value = String(state.invest);
+      }
+      if (e.key === 'Enter') invest.blur();
+    });
+    $$('[data-step="invest"]', root).forEach(btn => {
+      const dir = +btn.dataset.dir;
+      holdToRepeat(btn, investBox, held => {
+        setInvest(state.invest + dir * (held > 2000 ? 50 : 10));
+        return !((dir < 0 && state.invest <= 0) || (dir > 0 && state.invest >= MAX_INVEST));
+      });
+    });
+
+    // future price field (A, C, D): typing sets the % move; ± steps 1% (5% after 2s)
+    const future = role('future'), futureBox = role('futureBox');
+    if (future) {
+      future.addEventListener('focus', () => { future.select(); });
+      future.addEventListener('input', () => {
+        future.value = cleanTyping(future.value);
+        const p = state.prices[state.coin.sym], v = parseAmount(future.value);
+        if (p && future.value !== '') setPct(Math.round((v / p - 1) * 100), false);
+      });
+      future.addEventListener('blur', updateMove);       // snap to the 1% step
+      future.addEventListener('keydown', e => {
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); setPct(state.pct + (e.key === 'ArrowUp' ? 1 : -1), false); future.value = priceNum((state.prices[state.coin.sym] || 0) * (1 + state.pct / 100)); }
+        if (e.key === 'Enter') future.blur();
+      });
+      $$('[data-step="future"]', root).forEach(btn => {
+        const dir = +btn.dataset.dir;
+        holdToRepeat(btn, futureBox, held => {
+          setPct(state.pct + dir * (held > 2000 ? 5 : 1), false);
+          return Math.abs(state.pct) < RANGE;
+        });
+      });
+    }
+
+    // slider: only the knob drags; the centre dot resets to 0%
+    const slider = role('slider');
+    if (slider) {
+      const knob = role('knob');
+      const pctFromClientX = clientX => {
+        const r = slider.getBoundingClientRect(), half = r.width / 2;
+        const kw = parseFloat(getComputedStyle(slider).getPropertyValue('--kw')) || 38;
+        return clampPct(Math.round(((clientX - r.left - half) / (half - kw / 2)) * RANGE));
+      };
+      let dragging = false, grabOffset = 0;
+      knob.addEventListener('pointerdown', e => {
+        dragging = true;
+        const k = knob.getBoundingClientRect();
+        grabOffset = e.clientX - (k.left + k.width / 2);
+        try { knob.setPointerCapture(e.pointerId); } catch (_) { /* fine without capture */ }
+        slider.classList.remove('is-animating');
+        slider.classList.add('is-dragging');
+      });
+      knob.addEventListener('pointermove', e => { if (dragging) setPct(pctFromClientX(e.clientX - grabOffset), false); });
+      const endDrag = () => { dragging = false; slider.classList.remove('is-dragging'); };
+      knob.addEventListener('pointerup', endDrag);
+      knob.addEventListener('pointercancel', endDrag);
+      role('tick').addEventListener('click', () => setPct(0, true));
+      knob.addEventListener('keydown', e => {
+        const map = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1, PageUp: 10, PageDown: -10 };
+        let p = state.pct;
+        if (e.key in map) p += map[e.key] * (e.shiftKey ? 10 : 1);
+        else if (e.key === 'Home') p = -RANGE;
+        else if (e.key === 'End') p = RANGE;
+        else return;
+        e.preventDefault();
+        setPct(p, true);
+      });
+    }
+
+    bindSelect();
+  }
+
+  // ---- crypto dropdown with search
+  let selectApi = null;
+  function updateOptionPrices() {
+    roles('list').forEach(list => $$('[data-px]', list).forEach(el => {
       const p = state.prices[el.dataset.px];
       el.textContent = p ? eurRate(p) : '';
-    });
+    }));
   }
-  const search = $('#selectSearch'), empty = $('#selectEmpty');
-  const opts = $$('.select__opt', list);
-  let visible = COINS.map((_, i) => i);   // indices of options matching the search
-  let focusPos = 0;                         // position within `visible`
-  function filter(q) {
-    q = q.trim().toLowerCase();
-    visible = [];
-    COINS.forEach((c, i) => {
-      const hit = !q || c.name.toLowerCase().includes(q) || c.sym.toLowerCase().includes(q);
-      opts[i].hidden = !hit;
-      if (hit) visible.push(i);
-    });
-    empty.hidden = visible.length > 0;
-    focusPos = 0;
-    markFocus();
-  }
-  function openSelect(open) {
-    select.classList.toggle('is-open', open);
-    selBtn.setAttribute('aria-expanded', open);
-    if (open) {
+  function bindSelect() {
+    const select = role('select'), btn = role('selectBtn'), panel = role('panel');
+    const list = role('list'), search = role('search'), empty = role('empty');
+    const opts = $$('.select__opt', list);
+    let visible = COINS.map((_, i) => i), focusPos = 0;
+
+    function markFocus() {
+      opts.forEach(o => o.classList.remove('is-focus'));
+      const o = opts[visible[focusPos]];
+      if (!o) return;
+      o.classList.add('is-focus');
+      // scroll only the list (scrollIntoView would also scroll the glass card)
+      if (o.offsetTop < list.scrollTop) list.scrollTop = o.offsetTop;
+      else if (o.offsetTop + o.offsetHeight > list.scrollTop + list.clientHeight) list.scrollTop = o.offsetTop + o.offsetHeight - list.clientHeight;
+      search.setAttribute('aria-activedescendant', o.id);
+    }
+    function filter(q) {
+      q = q.trim().toLowerCase();
+      visible = [];
+      COINS.forEach((c, i) => {
+        const hit = !q || c.name.toLowerCase().includes(q) || c.sym.toLowerCase().includes(q);
+        opts[i].hidden = !hit;
+        if (hit) visible.push(i);
+      });
+      empty.hidden = visible.length > 0;
+      focusPos = 0;
+      markFocus();
+    }
+    function open(on) {
+      select.classList.toggle('is-open', on);
+      btn.setAttribute('aria-expanded', on);
+      if (!on) return;
+      // in the hero card the panel opens inside the card, from just under the fields down to the bottom
+      if (root.classList.contains('calc--card')) {
+        const fields = select.closest('.calc__fields');
+        panel.style.top = (fields.getBoundingClientRect().bottom - root.getBoundingClientRect().top + 8) + 'px';
+      } else panel.style.top = '';
       search.value = '';
       filter('');
       focusPos = Math.max(0, visible.indexOf(COINS.indexOf(state.coin)));
       markFocus();
       search.focus({ preventScroll: true });
     }
-  }
-  function markFocus() {
-    opts.forEach(o => o.classList.remove('is-focus'));
-    const o = opts[visible[focusPos]];
-    if (o) {
-      o.classList.add('is-focus');
-      // scroll only the list (scrollIntoView would also scroll the glass card in variant B)
-      if (o.offsetTop < list.scrollTop) list.scrollTop = o.offsetTop;
-      else if (o.offsetTop + o.offsetHeight > list.scrollTop + list.clientHeight) list.scrollTop = o.offsetTop + o.offsetHeight - list.clientHeight;
-      search.setAttribute('aria-activedescendant', o.id);
+    function choose(i) {
+      const c = COINS[i];
+      open(false);
+      btn.focus({ preventScroll: true });
+      if (c === state.coin) return;
+      state.coin = c;
+      opts.forEach((o, j) => o.setAttribute('aria-selected', j === i));
+      role('selIcon').src = iconFor(c);
+      role('selName').textContent = c.name;
+      roles('receiveCoin').forEach(img => { img.src = c.coin; });
+      updateRates();
     }
+    btn.addEventListener('click', () => open(!select.classList.contains('is-open')));
+    list.addEventListener('click', e => { const o = e.target.closest('.select__opt'); if (o) choose(+o.dataset.i); });
+    list.addEventListener('mousemove', e => {
+      const o = e.target.closest('.select__opt');
+      if (o) { const pos = visible.indexOf(+o.dataset.i); if (pos !== focusPos) { focusPos = pos; opts.forEach(x => x.classList.toggle('is-focus', x === o)); } }
+    });
+    search.addEventListener('input', () => filter(search.value));
+    search.addEventListener('keydown', e => {
+      if (e.key === 'ArrowDown') { focusPos = Math.min(visible.length - 1, focusPos + 1); markFocus(); e.preventDefault(); }
+      else if (e.key === 'ArrowUp') { focusPos = Math.max(0, focusPos - 1); markFocus(); e.preventDefault(); }
+      else if (e.key === 'Enter') { if (visible.length) choose(visible[focusPos]); e.preventDefault(); }
+      else if (e.key === 'Escape' || e.key === 'Tab') { open(false); btn.focus(); }
+    });
+    selectApi = { select, close: () => open(false) };
+    updateOptionPrices();
   }
-  function chooseCoin(i) {
-    const c = COINS[i];
-    openSelect(false);
-    selBtn.focus({ preventScroll: true });
-    if (c === state.coin) return;
-    state.coin = c;
-    opts.forEach((o, j) => o.setAttribute('aria-selected', j === i));
-    $('#selIcon').src = iconFor(c);
-    $('#selName').textContent = c.name;
-    els.coinImg.src = c.coin;
-    $('#receiveCoin').src = c.coin;
-    els.coinWrap.classList.remove('is-flip'); void els.coinWrap.offsetWidth; els.coinWrap.classList.add('is-flip');
-    renderRates();
-  }
-  selBtn.addEventListener('click', () => openSelect(!select.classList.contains('is-open')));
-  list.addEventListener('click', e => { const o = e.target.closest('.select__opt'); if (o) chooseCoin(+o.dataset.i); });
-  list.addEventListener('mousemove', e => {
-    const o = e.target.closest('.select__opt');
-    if (o) { const pos = visible.indexOf(+o.dataset.i); if (pos !== focusPos) { focusPos = pos; opts.forEach(x => x.classList.toggle('is-focus', x === o)); } }
-  });
-  search.addEventListener('input', () => filter(search.value));
-  search.addEventListener('keydown', e => {
-    if (e.key === 'ArrowDown') { focusPos = Math.min(visible.length - 1, focusPos + 1); markFocus(); e.preventDefault(); }
-    else if (e.key === 'ArrowUp') { focusPos = Math.max(0, focusPos - 1); markFocus(); e.preventDefault(); }
-    else if (e.key === 'Enter') { if (visible.length) chooseCoin(visible[focusPos]); e.preventDefault(); }
-    else if (e.key === 'Escape' || e.key === 'Tab') { openSelect(false); selBtn.focus(); }
-  });
-  document.addEventListener('pointerdown', e => { if (!select.contains(e.target)) openSelect(false); });
+  document.addEventListener('pointerdown', e => { if (selectApi && !selectApi.select.contains(e.target)) selectApi.close(); });
 
-  // ---------------------------------------------------------------- coin carousel (infinite)
-  const carouselCoins = ['coin-1', 'coin-2', 'coin-3', 'coin-4', 'coin-5', 'coin-mana', 'coin-uni', 'coin-aave', 'coin-comp', 'coin-sand'];
-  const track = $('#carouselTrack');
-  const coinHTML = carouselCoins.map((c, i) =>
-    `<div class="carousel__coin" style="--bd:${(-i * 0.6).toFixed(1)}s"><img src="assets/${c}.png" alt="" loading="lazy" /></div>`).join('');
-  track.innerHTML = coinHTML + coinHTML; // duplicated for a seamless loop
+  function renderCalc(v, container) {
+    $('#calcHome').innerHTML = '';
+    $('#heroCard').innerHTML = '';
+    container.innerHTML = TEMPLATES[v]();
+    root = container.firstElementChild;
+    bindCalc();
+    shown = state.invest * (1 + state.pct / 100);   // no count-up animation on a fresh render
+    updateAll();
+  }
 
   // ---------------------------------------------------------------- blog list
   const articles = $$('.article');
@@ -406,44 +621,39 @@
   }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
   $$('.reveal, .step').forEach(el => io.observe(el));
 
-  // ---------------------------------------------------------------- A / B variant tabs
+  // ---------------------------------------------------------------- A–E variant tabs
   // A = calculator in its own section, looping wave video.
-  // B = calculator inside a glass card in the hero, surfer video that plays once and stops on the last frame.
-  const tabsEl = $('.tabs'), tabBtns = $$('.tabs__item');
-  const calcEl = $('#calc'), calcHome = $('#calcHome'), heroCard = $('#heroCard'), heroVideo = $('#heroVideo');
-  const HERO_VIDEO = {
-    a: { src: 'assets/hero-wave.mp4', loop: true, poster: 'assets/hero.png' },
-    b: { src: 'assets/hero-surfer.mp4', loop: false, poster: '' },
-    c: { src: 'assets/hero-surfer.mp4', loop: false, poster: '' },
-  };
-  const VARIANTS = ['a', 'b', 'c'];
+  // B–E = calculator in a glass card in the hero, surfer video that plays once and stops on the last frame.
+  const tabsEl = $('.tabs'), tabBtns = $$('.tabs__item'), heroVideo = $('#heroVideo');
+  const VARIANTS = ['a', 'b', 'c', 'd', 'e'];
+  const VIDEO_A = { src: 'assets/hero-wave.mp4', loop: true, poster: 'assets/hero.png' };
+  const VIDEO_CARD = { src: 'assets/hero-surfer.mp4', loop: false, poster: '' };
   let variant = null;
   function setVariant(v) {
     if (v === variant) return;
+    const wasCard = variant && variant !== 'a';
     variant = v;
-    const isB = v !== 'a';   // B and C both put the calculator in the hero card
-    document.body.classList.toggle('variant-b', isB);
-    document.body.classList.toggle('variant-c', v === 'c');
+    const isCard = v !== 'a';
+    VARIANTS.forEach(x => document.body.classList.toggle('variant-' + x, x === v));
+    document.body.classList.toggle('variant-card', isCard);
     tabsEl.dataset.active = v;
     tabBtns.forEach(b => { const on = b.dataset.variant === v; b.classList.toggle('is-active', on); b.setAttribute('aria-selected', on); });
 
-    // move the one live calculator between the section and the hero card (state is kept)
-    if (isB) heroCard.appendChild(calcEl);
-    else calcHome.after(calcEl);
-    calcEl.classList.toggle('calc--card', isB);
-    if (isB) calcEl.classList.add('is-in');
+    renderCalc(v, isCard ? $('#heroCard') : $('#calcHome'));
 
-    const vid = HERO_VIDEO[v];
-    heroVideo.loop = vid.loop;
-    if (vid.poster) heroVideo.poster = vid.poster; else heroVideo.removeAttribute('poster');
-    if (!heroVideo.src.endsWith(vid.src)) { heroVideo.src = vid.src; }
-    heroVideo.currentTime = 0;
-    heroVideo.play().catch(() => {});
+    // video: only restart when switching between A and the card variants
+    if (!variant || isCard !== wasCard || !heroVideo.currentSrc) {
+      const vid = isCard ? VIDEO_CARD : VIDEO_A;
+      heroVideo.loop = vid.loop;
+      if (vid.poster) heroVideo.poster = vid.poster; else heroVideo.removeAttribute('poster');
+      if (!heroVideo.src.endsWith(vid.src)) heroVideo.src = vid.src;
+      heroVideo.currentTime = 0;
+      heroVideo.play().catch(() => {});
+    }
 
     const url = new URL(location.href);
-    if (isB) url.searchParams.set('variant', v); else url.searchParams.delete('variant');
+    if (isCard) url.searchParams.set('variant', v); else url.searchParams.delete('variant');
     history.replaceState(null, '', url);
-    renderSlider();
     onScroll();
   }
   tabBtns.forEach(b => b.addEventListener('click', () => setVariant(b.dataset.variant)));
@@ -458,9 +668,8 @@
   setVariant(VARIANTS.includes(requested) ? requested : 'a');
 
   // ---------------------------------------------------------------- boot
-  renderAll();
   fetchPrices();
   setInterval(fetchPrices, REFRESH_MS);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) fetchPrices(); });
-  addEventListener('resize', () => { renderSlider(); onScroll(); });
+  addEventListener('resize', () => { updateMove(); onScroll(); });
 })();
